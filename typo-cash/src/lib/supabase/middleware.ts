@@ -33,11 +33,11 @@ export async function updateSession(request: NextRequest) {
       }
     );
 
-    // AUTH DISABLED — remove this block when auth is configured
+    // AUTH DISABLED - remove this block when auth is configured
     // All routes accessible without login for now
     await supabase.auth.getUser();
   } catch {
-    // Supabase not available — allow request to proceed
+    // Supabase not available - allow request to proceed
     // This enables local development without a running Supabase instance
   }
 

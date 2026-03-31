@@ -40,7 +40,7 @@ serve(async (req) => {
     consent_captured_at: new Date().toISOString(),
   });
 
-  // 3. Affordability assessment — MANDATORY
+  // 3. Affordability assessment - MANDATORY
   const netIncome = borrower.net_monthly_salary;
   const existingObligations = 0; // Would query active loans in production
   const proposedInstalment = application.requested_amount; // Simplified

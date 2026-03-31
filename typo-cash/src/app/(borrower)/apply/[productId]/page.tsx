@@ -344,15 +344,15 @@ export default function ApplyWizardPage() {
             <div className="bg-slate-50 rounded-lg p-4 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-slate-600">Employer</span>
-                <span className="font-medium">{form.employerName || borrower?.employer_name || "—"}</span>
+                <span className="font-medium">{form.employerName || borrower?.employer_name || "-"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-600">Bank</span>
-                <span className="font-medium">{form.bankName || "—"}</span>
+                <span className="font-medium">{form.bankName || "-"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-600">Account</span>
-                <span className="font-mono">••••{form.accountNumber.slice(-4) || "—"}</span>
+                <span className="font-mono">••••{form.accountNumber.slice(-4) || "-"}</span>
               </div>
             </div>
 

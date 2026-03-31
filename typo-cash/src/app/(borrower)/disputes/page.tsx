@@ -150,7 +150,7 @@ export default function DisputesPage() {
             <div key={d.id} className="bg-white rounded-xl shadow-card p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-slate-500">
-                  {d.loans?.reference_number ?? "—"}
+                  {d.loans?.reference_number ?? "-"}
                 </span>
                 <StatusBadge status={d.status} />
               </div>

@@ -26,7 +26,7 @@ export default function LoginPage() {
     }
 
     setLoading(true);
-    // AUTH DISABLED for phone — bypass to dashboard until Twilio is configured
+    // AUTH DISABLED for phone - bypass to dashboard until Twilio is configured
     router.push("/dashboard");
   };
 

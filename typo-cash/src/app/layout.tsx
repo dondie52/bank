@@ -17,7 +17,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Typo Cash Solutions — Quick Cash, Real Solutions",
+    default: "Typo Cash Solutions - Quick Cash, Real Solutions",
     template: "%s | Typo Cash Solutions",
   },
   description:

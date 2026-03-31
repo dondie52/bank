@@ -180,7 +180,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-slate-900 truncate">
-                    Payment — {item.loans?.reference_number ?? "Loan"}
+                    Payment - {item.loans?.reference_number ?? "Loan"}
                   </p>
                   <p className="text-xs text-slate-500">
                     {new Date(item.received_at).toLocaleDateString()}

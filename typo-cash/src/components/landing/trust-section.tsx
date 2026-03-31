@@ -12,7 +12,7 @@ const trustItems = [
     icon: Eye,
     title: "Transparent Pricing",
     description:
-      "What you see is what you pay. Our calculator shows the exact total — no hidden fees, no surprises.",
+      "What you see is what you pay. Our calculator shows the exact total - no hidden fees, no surprises.",
   },
   {
     icon: Scale,

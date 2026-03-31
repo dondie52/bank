@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "About Us",
-  description: "Typo Cash Solutions — NBFIRA-licensed micro-lender in Botswana.",
+  description: "Typo Cash Solutions - NBFIRA-licensed micro-lender in Botswana.",
 };
 
 export default function AboutPage() {

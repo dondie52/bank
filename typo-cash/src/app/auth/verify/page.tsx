@@ -62,7 +62,7 @@ function VerifyContent() {
               omang_number: regData.omangNumber,
               first_name: regData.firstName,
               last_name: regData.lastName,
-              dob: "1990-01-01", // Placeholder — will be collected in KYC
+              dob: "1990-01-01", // Placeholder - will be collected in KYC
               gender: "male", // Placeholder
               net_monthly_salary: 0,
               borrower_tier: "new",

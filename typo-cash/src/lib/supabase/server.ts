@@ -16,7 +16,7 @@ export function createServerSupabaseClient() {
           try {
             cookieStore.set({ name, value, ...options });
           } catch {
-            // Server component — cookie can't be set
+            // Server component - cookie can't be set
           }
         },
         remove(name: string, options: CookieOptions) {

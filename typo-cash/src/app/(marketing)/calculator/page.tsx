@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Loan Calculator",
-  description: "Calculate your loan repayment. See exactly what you'll pay — no hidden fees.",
+  description: "Calculate your loan repayment. See exactly what you'll pay - no hidden fees.",
 };
 
 export default function CalculatorPage() {

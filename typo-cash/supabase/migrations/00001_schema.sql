@@ -1,5 +1,5 @@
 -- ============================================================
--- Typo Cash Solutions — Complete Database Schema
+-- Typo Cash Solutions - Complete Database Schema
 -- All money stored as BIGINT in thebe (100 thebe = 1 Pula)
 -- ============================================================
 
@@ -481,7 +481,7 @@ CREATE INDEX idx_audit_created ON audit_logs(created_at);
 CREATE OR REPLACE FUNCTION prevent_audit_modification()
 RETURNS TRIGGER AS $$
 BEGIN
-  RAISE EXCEPTION 'Audit logs are immutable — updates and deletes are not permitted';
+  RAISE EXCEPTION 'Audit logs are immutable - updates and deletes are not permitted';
 END;
 $$ LANGUAGE plpgsql;
 
@@ -558,7 +558,7 @@ BEGIN
   -- Cap 2: cumulative penalties must not exceed outstanding principal
   v_cap2 := GREATEST(0, p_outstanding_principal - p_cumulative_penalties);
 
-  -- Cap 3: in duplum — (interest + penalties) must not exceed original principal
+  -- Cap 3: in duplum - (interest + penalties) must not exceed original principal
   v_cap3 := GREATEST(0, p_original_principal - p_cumulative_interest - p_cumulative_penalties);
 
   -- Return the minimum of all three caps

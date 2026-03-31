@@ -39,7 +39,7 @@ export default function RegisterPage() {
     }
 
     setLoading(true);
-    // AUTH DISABLED — bypass to dashboard until auth is configured
+    // AUTH DISABLED - bypass to dashboard until auth is configured
     router.push("/dashboard");
   };
 

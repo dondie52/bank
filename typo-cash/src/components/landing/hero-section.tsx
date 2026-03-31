@@ -43,7 +43,7 @@ export function HeroSection() {
             <p className="mt-6 text-lg sm:text-xl text-white/90 leading-relaxed max-w-xl mx-auto lg:mx-0">
               Friendly, regulated loans from P500 to P7,000. Apply in minutes,
               get approved fast, and receive funds straight to your account.
-              No hidden fees — ever.
+              No hidden fees - ever.
             </p>
 
             {/* Trust indicators */}

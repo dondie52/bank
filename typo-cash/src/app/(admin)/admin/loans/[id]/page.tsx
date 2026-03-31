@@ -308,7 +308,7 @@ export default function LoanDetailPage() {
           {actionModal && (
             <div className="border border-slate-200 rounded-lg p-4 space-y-3">
               <p className="text-sm font-medium text-slate-700">
-                {actionModal === "restructure" && "Restructure this loan — provide new terms and reason."}
+                {actionModal === "restructure" && "Restructure this loan - provide new terms and reason."}
                 {actionModal === "collections" && "Transfer this loan to the collections queue."}
                 {actionModal === "writeoff" && "Write off this loan. This action requires manager approval."}
               </p>

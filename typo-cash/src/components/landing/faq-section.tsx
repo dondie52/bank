@@ -23,7 +23,7 @@ const faqs = [
   {
     question: "What documents do I need?",
     answer:
-      "You'll need your Omang (national ID), a recent payslip or proof of income, and bank account details. Everything is uploaded through the app — no need to visit an office.",
+      "You'll need your Omang (national ID), a recent payslip or proof of income, and bank account details. Everything is uploaded through the app - no need to visit an office.",
   },
   {
     question: "How is interest calculated?",
@@ -33,7 +33,7 @@ const faqs = [
   {
     question: "What happens if I can't repay on time?",
     answer:
-      "Contact us immediately — we want to help. Late payments incur a penalty of up to 5% of the outstanding balance per month, but penalties are capped and can never exceed your original loan amount (in duplum rule). We offer restructuring options for genuine hardship.",
+      "Contact us immediately - we want to help. Late payments incur a penalty of up to 5% of the outstanding balance per month, but penalties are capped and can never exceed your original loan amount (in duplum rule). We offer restructuring options for genuine hardship.",
   },
   {
     question: "Is Typo Cash Solutions a licensed lender?",

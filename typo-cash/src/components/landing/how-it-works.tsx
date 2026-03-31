@@ -6,7 +6,7 @@ const steps = [
     icon: Calculator,
     title: "Calculate Your Loan",
     description:
-      "Use our calculator to find the right amount and term. See exactly what you'll repay — no surprises.",
+      "Use our calculator to find the right amount and term. See exactly what you'll repay - no surprises.",
     color: "bg-sky-100 text-primary",
   },
   {

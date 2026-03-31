@@ -1,5 +1,5 @@
 /**
- * SIMPLE INTEREST ONLY — Legal requirement under NBFIRA regulations.
+ * SIMPLE INTEREST ONLY - Legal requirement under NBFIRA regulations.
  * Formula: interest = principal × (rate/100) × (termDays/365)
  * ALL math in BigInt. NEVER floating point for money. NEVER compound interest.
  */

@@ -22,7 +22,7 @@ export function CTASection() {
             href="/register"
             className="inline-flex items-center justify-center gap-2 h-12 px-8 bg-white text-primary font-semibold rounded-lg hover:bg-sky-50 transition-colors duration-200 shadow-lg cursor-pointer w-full sm:w-auto"
           >
-            Apply Now — It&apos;s Free
+            Apply Now - It&apos;s Free
             <ArrowRight className="w-4 h-4" />
           </Link>
           <a

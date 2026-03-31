@@ -16,7 +16,7 @@ interface NotificationRequest {
 const templates: Record<string, { sms: string; email_subject?: string; email_body?: string }> = {
   loan_approved: {
     sms: "Hi {name}, your loan of {amount} has been approved! Sign your agreement in the Typo Cash app to proceed. Ref: {ref}",
-    email_subject: "Your Loan is Approved — {ref}",
+    email_subject: "Your Loan is Approved - {ref}",
   },
   cooling_off_start: {
     sms: "Your Typo Cash loan {ref} is now in the 48-hour cooling-off period. You may cancel at no cost during this time.",

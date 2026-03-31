@@ -15,8 +15,8 @@ const reportTypes = [
   { id: "portfolio-summary", name: "Portfolio Summary", description: "Overview of all active loans, amounts, and performance metrics" },
   { id: "delinquency-aging", name: "Delinquency Aging", description: "Aging analysis of overdue loans by bucket (30/60/90+ days)" },
   { id: "disbursements", name: "Disbursements", description: "All loan disbursements with amounts, methods, and dates" },
-  { id: "nbfira-form-6", name: "NBFIRA Form 6", description: "Quarterly regulatory return — Statement of Financial Position" },
-  { id: "nbfira-form-7", name: "NBFIRA Form 7", description: "Quarterly regulatory return — Income and Expenditure Statement" },
+  { id: "nbfira-form-6", name: "NBFIRA Form 6", description: "Quarterly regulatory return - Statement of Financial Position" },
+  { id: "nbfira-form-7", name: "NBFIRA Form 7", description: "Quarterly regulatory return - Income and Expenditure Statement" },
 ];
 
 export default function ReportsPage() {

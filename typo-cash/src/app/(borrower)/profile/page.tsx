@@ -63,11 +63,11 @@ export default function ProfilePage() {
         <div className="divide-y divide-slate-100">
           {[
             { icon: User, label: "Full Name", value: `${borrower.first_name} ${borrower.last_name}` },
-            { icon: Phone, label: "Phone", value: authUser?.phone ?? "—" },
-            { icon: Mail, label: "Email", value: authUser?.email ?? "—" },
+            { icon: Phone, label: "Phone", value: authUser?.phone ?? "-" },
+            { icon: Mail, label: "Email", value: authUser?.email ?? "-" },
             { icon: Shield, label: "Omang", value: `•••••${borrower.omang_number.slice(-4)}` },
-            { icon: MapPin, label: "Address", value: [borrower.address, borrower.city].filter(Boolean).join(", ") || "—" },
-            { icon: Building, label: "Employer", value: borrower.employer_name ?? "—" },
+            { icon: MapPin, label: "Address", value: [borrower.address, borrower.city].filter(Boolean).join(", ") || "-" },
+            { icon: Building, label: "Employer", value: borrower.employer_name ?? "-" },
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-3 px-5 py-3.5">
               <item.icon className="w-4 h-4 text-slate-400" />

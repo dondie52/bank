@@ -139,7 +139,7 @@ export default function AdminDashboard() {
                       {item.borrowers?.first_name} {item.borrowers?.last_name}
                     </p>
                     <p className="text-xs text-red-700">
-                      {item.loans?.reference_number ?? "--"} — {item.loans?.days_overdue ?? 0} day(s) overdue
+                      {item.loans?.reference_number ?? "--"} - {item.loans?.days_overdue ?? 0} day(s) overdue
                     </p>
                   </div>
                   <span className="text-sm font-mono font-medium text-red-900">

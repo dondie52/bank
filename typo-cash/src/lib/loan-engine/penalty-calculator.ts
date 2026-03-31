@@ -1,9 +1,9 @@
 /**
- * Penalty Calculator — THREE HARD CAPS, all enforced. No admin override.
+ * Penalty Calculator - THREE HARD CAPS, all enforced. No admin override.
  *
  * Cap 1: Max 5% of outstanding principal per month
  * Cap 2: Cumulative penalties MUST NOT exceed outstanding principal
- * Cap 3: In duplum — (interest + penalties) MUST NOT exceed original principal
+ * Cap 3: In duplum - (interest + penalties) MUST NOT exceed original principal
  *
  * Returns the minimum allowed by all three caps.
  */
@@ -27,7 +27,7 @@ export function calculatePenalty(
   // Cap 2: cumulative penalties must not exceed outstanding principal
   const cap2 = outstandingPrincipal - cumulativePenalties;
 
-  // Cap 3: in duplum — (interest + penalties) must not exceed original principal
+  // Cap 3: in duplum - (interest + penalties) must not exceed original principal
   const cap3 = originalPrincipal - cumulativeInterest - cumulativePenalties;
 
   // Return the minimum of all three, but never negative

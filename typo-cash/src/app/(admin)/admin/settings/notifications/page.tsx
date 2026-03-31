@@ -155,7 +155,7 @@ export default function NotificationsSettingsPage() {
             <button onClick={() => setEditingId(null)} className="text-xs text-slate-500 hover:text-slate-700">Close</button>
           </div>
           <div className="h-32 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200 flex items-center justify-center">
-            <p className="text-sm text-slate-400">Template editor placeholder — rich text editing would go here</p>
+            <p className="text-sm text-slate-400">Template editor placeholder - rich text editing would go here</p>
           </div>
           <div className="flex gap-3 mt-4">
             <button className="px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white text-sm font-medium rounded-lg transition-colors">

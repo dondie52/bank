@@ -92,7 +92,7 @@ export default function OfferPage() {
         <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
           <Shield className="w-4 h-4 text-primary" />
           <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-            Regulation 10 — Salient Features
+            Regulation 10 - Salient Features
           </span>
         </div>
 
