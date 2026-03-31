@@ -33,24 +33,9 @@ export async function updateSession(request: NextRequest) {
       }
     );
 
-    const { data: { user } } = await supabase.auth.getUser();
-
-    const protectedPaths = ["/dashboard", "/apply", "/loans", "/kyc", "/profile", "/disputes", "/history", "/notifications", "/help"];
-    const adminPaths = ["/admin"];
-    const authPaths = ["/login", "/register", "/verify"];
-    const pathname = request.nextUrl.pathname;
-
-    const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
-    const isAdmin = adminPaths.some((p) => pathname.startsWith(p));
-    const isAuth = authPaths.some((p) => pathname.startsWith(p));
-
-    if (!user && (isProtected || isAdmin)) {
-      return NextResponse.redirect(new URL("/login", request.url));
-    }
-
-    if (user && isAuth) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
+    // AUTH DISABLED — remove this block when auth is configured
+    // All routes accessible without login for now
+    await supabase.auth.getUser();
   } catch {
     // Supabase not available — allow request to proceed
     // This enables local development without a running Supabase instance

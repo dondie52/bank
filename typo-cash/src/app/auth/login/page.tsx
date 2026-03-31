@@ -23,19 +23,8 @@ export default function LoginPage() {
     }
 
     setLoading(true);
-    try {
-      const supabase = createClient();
-      const { error: otpError } = await supabase.auth.signInWithOtp({ phone });
-      if (otpError) {
-        setError(otpError.message);
-        return;
-      }
-      router.push(`/auth/verify?phone=${encodeURIComponent(phone)}`);
-    } catch {
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    // AUTH DISABLED — bypass to dashboard until auth is configured
+    router.push("/dashboard");
   };
 
   return (

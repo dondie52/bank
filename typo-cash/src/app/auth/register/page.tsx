@@ -39,29 +39,8 @@ export default function RegisterPage() {
     }
 
     setLoading(true);
-    try {
-      const supabase = createClient();
-
-      // Store registration data in sessionStorage for post-OTP creation
-      sessionStorage.setItem("register_data", JSON.stringify({
-        firstName: form.firstName,
-        lastName: form.lastName,
-        omangNumber: form.omangNumber,
-      }));
-
-      // Send OTP to phone number
-      const { error: otpError } = await supabase.auth.signInWithOtp({ phone: form.phone });
-      if (otpError) {
-        setError(otpError.message);
-        return;
-      }
-
-      router.push(`/auth/verify?phone=${encodeURIComponent(form.phone)}&register=true`);
-    } catch {
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    // AUTH DISABLED — bypass to dashboard until auth is configured
+    router.push("/dashboard");
   };
 
   return (
