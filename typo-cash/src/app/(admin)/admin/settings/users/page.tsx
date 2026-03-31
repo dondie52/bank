@@ -1,6 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useAdminUsers } from "@/hooks/use-admin";
+import { createClient } from "@/lib/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { TableSkeleton } from "@/components/common/loading-skeleton";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
@@ -8,62 +12,74 @@ import {
   Mail,
 } from "lucide-react";
 
-interface AdminUser {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  active: boolean;
-  lastLogin: string;
-}
-
 const roles = ["admin", "manager", "agent", "readonly"];
 
-const initialUsers: AdminUser[] = [
-  { id: "USR-001", name: "Georgy Admin", email: "admin@typocash.co.bw", role: "admin", active: true, lastLogin: "2026-03-31" },
-  { id: "USR-002", name: "Kagiso Ratsie", email: "kagiso@typocash.co.bw", role: "manager", active: true, lastLogin: "2026-03-31" },
-  { id: "USR-003", name: "Lerato Moeng", email: "lerato@typocash.co.bw", role: "agent", active: true, lastLogin: "2026-03-30" },
-  { id: "USR-004", name: "Mpho Kgotla", email: "mpho@typocash.co.bw", role: "agent", active: true, lastLogin: "2026-03-29" },
-  { id: "USR-005", name: "Naledi Setlhare", email: "naledi@typocash.co.bw", role: "readonly", active: false, lastLogin: "2026-03-15" },
-];
-
 export default function UsersSettingsPage() {
-  const [users, setUsers] = useState<AdminUser[]>(initialUsers);
+  const { data: rawUsers, isLoading } = useAdminUsers();
+  const queryClient = useQueryClient();
   const [showInvite, setShowInvite] = useState(false);
   const [inviteName, setInviteName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("agent");
   const [invited, setInvited] = useState(false);
 
-  const toggleActive = (id: string) => {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, active: !u.active } : u))
-    );
+  const users = (rawUsers ?? []).map((u: any) => ({
+    id: u.id,
+    name: `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim() || "Unknown",
+    email: u.users?.email ?? u.email ?? "--",
+    role: u.role ?? "agent",
+    active: u.is_active ?? true,
+    lastLogin: u.last_login_at ? new Date(u.last_login_at).toISOString().slice(0, 10) : "Never",
+  }));
+
+  const toggleActive = async (id: string, currentActive: boolean) => {
+    const supabase = createClient();
+    await supabase
+      .from("admin_users")
+      .update({ is_active: !currentActive })
+      .eq("id", id);
+    queryClient.invalidateQueries({ queryKey: ["admin-users"] });
   };
 
-  const changeRole = (id: string, role: string) => {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, role } : u))
-    );
+  const changeRole = async (id: string, role: string) => {
+    const supabase = createClient();
+    await supabase
+      .from("admin_users")
+      .update({ role })
+      .eq("id", id);
+    queryClient.invalidateQueries({ queryKey: ["admin-users"] });
   };
 
-  const handleInvite = () => {
+  const handleInvite = async () => {
     if (!inviteName || !inviteEmail) return;
-    const newUser: AdminUser = {
-      id: "USR-" + String(users.length + 1).padStart(3, "0"),
-      name: inviteName,
+    const [firstName, ...rest] = inviteName.split(" ");
+    const lastName = rest.join(" ");
+    const supabase = createClient();
+    await supabase.from("admin_users").insert({
+      first_name: firstName,
+      last_name: lastName || null,
       email: inviteEmail,
       role: inviteRole,
-      active: true,
-      lastLogin: "Never",
-    };
-    setUsers((prev) => [...prev, newUser]);
+      is_active: true,
+    });
+    queryClient.invalidateQueries({ queryKey: ["admin-users"] });
     setInviteName("");
     setInviteEmail("");
     setInviteRole("agent");
     setInvited(true);
     setTimeout(() => { setInvited(false); setShowInvite(false); }, 1500);
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Admin Users</h1>
+        </div>
+        <TableSkeleton rows={5} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -147,49 +163,55 @@ export default function UsersSettingsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {users.map((u) => (
-                <tr key={u.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-3.5">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-sky-100 rounded-full flex items-center justify-center">
-                        <span className="text-xs font-bold text-sky-600">
-                          {u.name.split(" ").map((n) => n[0]).join("")}
-                        </span>
-                      </div>
-                      <span className="text-sm font-medium text-slate-900">{u.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-3.5 text-sm text-slate-600">{u.email}</td>
-                  <td className="px-6 py-3.5">
-                    <select
-                      value={u.role}
-                      onChange={(e) => changeRole(u.id, e.target.value)}
-                      className="border border-slate-200 rounded-lg px-2 py-1 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent capitalize"
-                    >
-                      {roles.map((r) => (
-                        <option key={r} value={r}>{r}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-6 py-3.5 text-sm text-slate-500">{u.lastLogin}</td>
-                  <td className="px-6 py-3.5 text-center">
-                    <button
-                      onClick={() => toggleActive(u.id)}
-                      className={cn(
-                        "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-                        u.active ? "bg-sky-500" : "bg-slate-300"
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                          u.active ? "translate-x-6" : "translate-x-1"
-                        )}
-                      />
-                    </button>
-                  </td>
+              {users.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-500">No admin users found.</td>
                 </tr>
-              ))}
+              ) : (
+                users.map((u: any) => (
+                  <tr key={u.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-3.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-sky-100 rounded-full flex items-center justify-center">
+                          <span className="text-xs font-bold text-sky-600">
+                            {u.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+                          </span>
+                        </div>
+                        <span className="text-sm font-medium text-slate-900">{u.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-3.5 text-sm text-slate-600">{u.email}</td>
+                    <td className="px-6 py-3.5">
+                      <select
+                        value={u.role}
+                        onChange={(e) => changeRole(u.id, e.target.value)}
+                        className="border border-slate-200 rounded-lg px-2 py-1 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent capitalize"
+                      >
+                        {roles.map((r) => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-6 py-3.5 text-sm text-slate-500">{u.lastLogin}</td>
+                    <td className="px-6 py-3.5 text-center">
+                      <button
+                        onClick={() => toggleActive(u.id, u.active)}
+                        className={cn(
+                          "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+                          u.active ? "bg-sky-500" : "bg-slate-300"
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                            u.active ? "translate-x-6" : "translate-x-1"
+                          )}
+                        />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

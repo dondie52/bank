@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import { formatMoney } from "@/lib/money";
+import { useLoanProducts } from "@/hooks/use-admin";
+import { createClient } from "@/lib/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { TableSkeleton } from "@/components/common/loading-skeleton";
 import { cn } from "@/lib/utils";
 import {
   Plus,
@@ -10,25 +14,9 @@ import {
   Package,
 } from "lucide-react";
 
-interface Product {
-  id: string;
-  name: string;
-  code: string;
-  rate: number;
-  minAmount: bigint;
-  maxAmount: bigint;
-  active: boolean;
-}
-
-const initialProducts: Product[] = [
-  { id: "quick-cash", name: "Quick Cash", code: "QC", rate: 12, minAmount: 50_000n, maxAmount: 300_000n, active: true },
-  { id: "emergency", name: "Emergency Loan", code: "EM", rate: 15, minAmount: 50_000n, maxAmount: 500_000n, active: true },
-  { id: "instalment", name: "Instalment Loan", code: "IN", rate: 18, minAmount: 100_000n, maxAmount: 700_000n, active: true },
-  { id: "salary-backed", name: "Salary-Backed Loan", code: "SB", rate: 15, minAmount: 200_000n, maxAmount: 700_000n, active: true },
-];
-
 export default function ProductsSettingsPage() {
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const { data: rawProducts, isLoading } = useLoanProducts();
+  const queryClient = useQueryClient();
   const [showPanel, setShowPanel] = useState(false);
   const [newName, setNewName] = useState("");
   const [newCode, setNewCode] = useState("");
@@ -36,24 +24,37 @@ export default function ProductsSettingsPage() {
   const [newMin, setNewMin] = useState("");
   const [newMax, setNewMax] = useState("");
 
-  const toggleActive = (id: string) => {
-    setProducts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, active: !p.active } : p))
-    );
+  const products = (rawProducts ?? []).map((p: any) => ({
+    id: p.id,
+    name: p.name ?? "--",
+    code: p.code ?? "--",
+    rate: p.interest_rate ?? 0,
+    minAmount: BigInt(p.min_amount || 0),
+    maxAmount: BigInt(p.max_amount || 0),
+    active: p.is_active ?? true,
+  }));
+
+  const toggleActive = async (id: string, currentActive: boolean) => {
+    const supabase = createClient();
+    await supabase
+      .from("loan_products")
+      .update({ is_active: !currentActive })
+      .eq("id", id);
+    queryClient.invalidateQueries({ queryKey: ["loan-products"] });
   };
 
-  const handleAddProduct = () => {
+  const handleAddProduct = async () => {
     if (!newName || !newCode || !newRate || !newMin || !newMax) return;
-    const product: Product = {
-      id: newCode.toLowerCase() + "-" + Date.now(),
+    const supabase = createClient();
+    await supabase.from("loan_products").insert({
       name: newName,
       code: newCode.toUpperCase(),
-      rate: parseFloat(newRate),
-      minAmount: BigInt(Math.round(parseFloat(newMin) * 100)),
-      maxAmount: BigInt(Math.round(parseFloat(newMax) * 100)),
-      active: true,
-    };
-    setProducts((prev) => [...prev, product]);
+      interest_rate: parseFloat(newRate),
+      min_amount: Math.round(parseFloat(newMin) * 100),
+      max_amount: Math.round(parseFloat(newMax) * 100),
+      is_active: true,
+    });
+    queryClient.invalidateQueries({ queryKey: ["loan-products"] });
     setNewName("");
     setNewCode("");
     setNewRate("");
@@ -61,6 +62,17 @@ export default function ProductsSettingsPage() {
     setNewMax("");
     setShowPanel(false);
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Loan Products</h1>
+        </div>
+        <TableSkeleton rows={4} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -95,36 +107,42 @@ export default function ProductsSettingsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {products.map((p) => (
-                <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-3.5">
-                    <div className="flex items-center gap-2">
-                      <Package className="w-4 h-4 text-slate-400" />
-                      <span className="text-sm font-medium text-slate-900">{p.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-3.5 text-sm font-mono text-slate-600">{p.code}</td>
-                  <td className="px-6 py-3.5 text-sm font-mono text-right text-slate-900">{p.rate}%</td>
-                  <td className="px-6 py-3.5 text-sm font-mono text-right text-slate-900">{formatMoney(p.minAmount)}</td>
-                  <td className="px-6 py-3.5 text-sm font-mono text-right text-slate-900">{formatMoney(p.maxAmount)}</td>
-                  <td className="px-6 py-3.5 text-center">
-                    <button
-                      onClick={() => toggleActive(p.id)}
-                      className={cn(
-                        "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-                        p.active ? "bg-sky-500" : "bg-slate-300"
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                          p.active ? "translate-x-6" : "translate-x-1"
-                        )}
-                      />
-                    </button>
-                  </td>
+              {products.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-sm text-slate-500">No loan products configured.</td>
                 </tr>
-              ))}
+              ) : (
+                products.map((p: any) => (
+                  <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-3.5">
+                      <div className="flex items-center gap-2">
+                        <Package className="w-4 h-4 text-slate-400" />
+                        <span className="text-sm font-medium text-slate-900">{p.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-3.5 text-sm font-mono text-slate-600">{p.code}</td>
+                    <td className="px-6 py-3.5 text-sm font-mono text-right text-slate-900">{p.rate}%</td>
+                    <td className="px-6 py-3.5 text-sm font-mono text-right text-slate-900">{formatMoney(p.minAmount)}</td>
+                    <td className="px-6 py-3.5 text-sm font-mono text-right text-slate-900">{formatMoney(p.maxAmount)}</td>
+                    <td className="px-6 py-3.5 text-center">
+                      <button
+                        onClick={() => toggleActive(p.id, p.active)}
+                        className={cn(
+                          "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+                          p.active ? "bg-sky-500" : "bg-slate-300"
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                            p.active ? "translate-x-6" : "translate-x-1"
+                          )}
+                        />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useAuditLogs } from "@/hooks/use-admin";
+import { TableSkeleton } from "@/components/common/loading-skeleton";
 import { cn } from "@/lib/utils";
 import {
   Search,
@@ -11,40 +13,16 @@ import {
   Calendar,
 } from "lucide-react";
 
-interface AuditEntry {
-  id: string;
-  timestamp: string;
-  actor: string;
-  action: string;
-  entityType: string;
-  entityId: string;
-  oldValue: Record<string, unknown> | null;
-  newValue: Record<string, unknown> | null;
-}
-
-const auditLog: AuditEntry[] = [
-  { id: "AUD-001", timestamp: "2026-03-31 14:23:05", actor: "admin@typocash.co.bw", action: "UPDATE", entityType: "Loan", entityId: "TC-202603-00045", oldValue: { status: "active" }, newValue: { status: "overdue" } },
-  { id: "AUD-002", timestamp: "2026-03-31 13:45:12", actor: "system", action: "CREATE", entityType: "ComplianceFlag", entityId: "FLG-001", oldValue: null, newValue: { flagType: "AML", severity: "critical", entityId: "BRW-00123" } },
-  { id: "AUD-003", timestamp: "2026-03-31 12:10:33", actor: "kagiso@typocash.co.bw", action: "UPDATE", entityType: "KYC", entityId: "KYC-001", oldValue: { status: "pending" }, newValue: { status: "approved" } },
-  { id: "AUD-004", timestamp: "2026-03-31 11:02:18", actor: "admin@typocash.co.bw", action: "DISBURSE", entityType: "Loan", entityId: "TC-202603-00050", oldValue: { status: "cooling_off" }, newValue: { status: "active", disbursedAt: "2026-03-31T11:02:18Z" } },
-  { id: "AUD-005", timestamp: "2026-03-30 16:45:00", actor: "lerato@typocash.co.bw", action: "UPDATE", entityType: "Collection", entityId: "COL-002", oldValue: { stage: "early" }, newValue: { stage: "mid" } },
-  { id: "AUD-006", timestamp: "2026-03-30 15:30:22", actor: "system", action: "CREATE", entityType: "Dispute", entityId: "DSP-003", oldValue: null, newValue: { category: "Interest Calculation", status: "open" } },
-  { id: "AUD-007", timestamp: "2026-03-30 14:12:45", actor: "admin@typocash.co.bw", action: "UPDATE", entityType: "User", entityId: "USR-005", oldValue: { role: "agent" }, newValue: { role: "manager" } },
-  { id: "AUD-008", timestamp: "2026-03-30 10:05:11", actor: "mpho@typocash.co.bw", action: "RESOLVE", entityType: "ComplianceFlag", entityId: "FLG-006", oldValue: { resolved: false }, newValue: { resolved: true } },
-  { id: "AUD-009", timestamp: "2026-03-29 17:22:33", actor: "system", action: "CREATE", entityType: "Loan", entityId: "TC-202603-00078", oldValue: null, newValue: { borrower: "Naledi Tau", amount: 200000, product: "Emergency" } },
-  { id: "AUD-010", timestamp: "2026-03-29 15:10:00", actor: "admin@typocash.co.bw", action: "DELETE", entityType: "NotificationTemplate", entityId: "TPL-003", oldValue: { code: "payment_reminder_v1", channel: "sms" }, newValue: null },
-  { id: "AUD-011", timestamp: "2026-03-29 11:44:55", actor: "kagiso@typocash.co.bw", action: "UPDATE", entityType: "Borrower", entityId: "BRW-00156", oldValue: { phone: "+267 71 000 000" }, newValue: { phone: "+267 71 234 567" } },
-  { id: "AUD-012", timestamp: "2026-03-28 09:30:00", actor: "system", action: "CREATE", entityType: "ComplianceFlag", entityId: "FLG-003", oldValue: null, newValue: { flagType: "AML", severity: "medium" } },
-];
-
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 20;
 
 export default function AuditLogPage() {
   const [search, setSearch] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(0);
   const [expandedJson, setExpandedJson] = useState<Set<string>>(new Set());
+
+  const { data: result, isLoading } = useAuditLogs(page);
+  const entries = result?.data ?? [];
+  const totalCount = result?.count ?? 0;
 
   const toggleJson = (key: string) => {
     setExpandedJson((prev) => {
@@ -55,23 +33,19 @@ export default function AuditLogPage() {
     });
   };
 
-  const filtered = auditLog.filter((entry) => {
-    if (search) {
-      const s = search.toLowerCase();
-      if (
-        !entry.actor.toLowerCase().includes(s) &&
-        !entry.action.toLowerCase().includes(s) &&
-        !entry.entityType.toLowerCase().includes(s) &&
-        !entry.entityId.toLowerCase().includes(s)
-      ) return false;
-    }
-    if (dateFrom && entry.timestamp < dateFrom) return false;
-    if (dateTo && entry.timestamp > dateTo + " 23:59:59") return false;
-    return true;
+  // Client-side search on the current page
+  const filtered = entries.filter((entry: any) => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    return (
+      (entry.actor ?? "").toLowerCase().includes(s) ||
+      (entry.action ?? "").toLowerCase().includes(s) ||
+      (entry.entity_type ?? "").toLowerCase().includes(s) ||
+      (entry.entity_id ?? "").toLowerCase().includes(s)
+    );
   });
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const renderJson = (key: string, data: Record<string, unknown> | null) => {
     if (!data) return <span className="text-xs text-slate-400">&mdash;</span>;
@@ -95,6 +69,23 @@ export default function AuditLogPage() {
     );
   };
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <a href="/admin/compliance" className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+            <ArrowLeft className="w-5 h-5 text-slate-600" />
+          </a>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Audit Log</h1>
+            <p className="text-sm text-slate-500 mt-0.5">Searchable record of all system actions</p>
+          </div>
+        </div>
+        <TableSkeleton rows={8} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -116,24 +107,8 @@ export default function AuditLogPage() {
               type="text"
               placeholder="Search by actor, action, or entity..."
               value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+              onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-slate-400" />
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => { setDateFrom(e.target.value); setPage(0); }}
-              className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
-            />
-            <span className="text-xs text-slate-400">to</span>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(e) => { setDateTo(e.target.value); setPage(0); }}
-              className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -155,10 +130,12 @@ export default function AuditLogPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {paginated.map((entry) => (
+              {filtered.map((entry: any) => (
                 <tr key={entry.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-3.5 text-xs font-mono text-slate-600 whitespace-nowrap">{entry.timestamp}</td>
-                  <td className="px-6 py-3.5 text-sm text-slate-900">{entry.actor}</td>
+                  <td className="px-6 py-3.5 text-xs font-mono text-slate-600 whitespace-nowrap">
+                    {entry.created_at ? new Date(entry.created_at).toLocaleString() : "--"}
+                  </td>
+                  <td className="px-6 py-3.5 text-sm text-slate-900">{entry.actor ?? "--"}</td>
                   <td className="px-6 py-3.5">
                     <span className={cn(
                       "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
@@ -168,16 +145,16 @@ export default function AuditLogPage() {
                       entry.action === "DISBURSE" && "bg-violet-100 text-violet-700",
                       entry.action === "RESOLVE" && "bg-amber-100 text-amber-700",
                     )}>
-                      {entry.action}
+                      {entry.action ?? "--"}
                     </span>
                   </td>
-                  <td className="px-6 py-3.5 text-sm text-slate-600">{entry.entityType}</td>
-                  <td className="px-6 py-3.5 text-sm font-mono text-slate-900">{entry.entityId}</td>
-                  <td className="px-6 py-3.5">{renderJson(`${entry.id}-old`, entry.oldValue)}</td>
-                  <td className="px-6 py-3.5">{renderJson(`${entry.id}-new`, entry.newValue)}</td>
+                  <td className="px-6 py-3.5 text-sm text-slate-600">{entry.entity_type ?? "--"}</td>
+                  <td className="px-6 py-3.5 text-sm font-mono text-slate-900">{entry.entity_id ?? "--"}</td>
+                  <td className="px-6 py-3.5">{renderJson(`${entry.id}-old`, entry.old_value)}</td>
+                  <td className="px-6 py-3.5">{renderJson(`${entry.id}-new`, entry.new_value)}</td>
                 </tr>
               ))}
-              {paginated.length === 0 && (
+              {filtered.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-6 py-8 text-center text-sm text-slate-400">No audit entries match your search.</td>
                 </tr>
@@ -190,7 +167,7 @@ export default function AuditLogPage() {
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-6 py-3 border-t border-slate-100">
             <p className="text-xs text-slate-500">
-              Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} of {filtered.length} entries
+              Page {page + 1} of {totalPages} ({totalCount} total entries)
             </p>
             <div className="flex items-center gap-1">
               <button
@@ -200,7 +177,7 @@ export default function AuditLogPage() {
               >
                 <ChevronLeft className="w-4 h-4 text-slate-600" />
               </button>
-              {Array.from({ length: totalPages }, (_, i) => (
+              {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => (
                 <button
                   key={i}
                   onClick={() => setPage(i)}

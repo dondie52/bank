@@ -1,6 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useComplianceFlags } from "@/hooks/use-admin";
+import { createClient } from "@/lib/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { TableSkeleton, CardSkeleton } from "@/components/common/loading-skeleton";
 import { cn } from "@/lib/utils";
 import {
   Shield,
@@ -12,28 +16,7 @@ import {
 
 type Severity = "critical" | "high" | "medium" | "low";
 
-interface ComplianceFlag {
-  id: string;
-  entityType: string;
-  entityId: string;
-  flagType: string;
-  severity: Severity;
-  description: string;
-  createdDate: string;
-  resolved: boolean;
-}
-
-const flags: ComplianceFlag[] = [
-  { id: "FLG-001", entityType: "Borrower", entityId: "BRW-00123", flagType: "AML", severity: "critical", description: "Transaction pattern matches structuring behavior. Multiple deposits just under reporting threshold.", createdDate: "2026-03-30", resolved: false },
-  { id: "FLG-002", entityType: "Loan", entityId: "TC-202603-00045", flagType: "Fraud", severity: "high", description: "Payslip employer details do not match BURS records.", createdDate: "2026-03-29", resolved: false },
-  { id: "FLG-003", entityType: "Borrower", entityId: "BRW-00089", flagType: "AML", severity: "medium", description: "PEP match detected during screening. Manual review required.", createdDate: "2026-03-28", resolved: false },
-  { id: "FLG-004", entityType: "Loan", entityId: "TC-202603-00032", flagType: "Compliance", severity: "low", description: "Cooling-off period disclosure not acknowledged by borrower.", createdDate: "2026-03-27", resolved: false },
-  { id: "FLG-005", entityType: "Borrower", entityId: "BRW-00156", flagType: "Fraud", severity: "high", description: "Duplicate Omang detected across two applications.", createdDate: "2026-03-26", resolved: false },
-  { id: "FLG-006", entityType: "Loan", entityId: "TC-202602-00018", flagType: "Compliance", severity: "medium", description: "Interest rate exceeds NBFIRA guideline for product type.", createdDate: "2026-03-25", resolved: true },
-  { id: "FLG-007", entityType: "Borrower", entityId: "BRW-00201", flagType: "AML", severity: "critical", description: "Borrower appears on international sanctions list.", createdDate: "2026-03-24", resolved: false },
-];
-
-const severityColors: Record<Severity, { bg: string; text: string; dot: string }> = {
+const severityColors: Record<string, { bg: string; text: string; dot: string }> = {
   critical: { bg: "bg-red-50", text: "text-red-700", dot: "bg-red-500" },
   high: { bg: "bg-orange-50", text: "text-orange-700", dot: "bg-orange-500" },
   medium: { bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-500" },
@@ -41,24 +24,63 @@ const severityColors: Record<Severity, { bg: string; text: string; dot: string }
 };
 
 export default function CompliancePage() {
-  const [resolvedFlags, setResolvedFlags] = useState<Set<string>>(
-    new Set(flags.filter((f) => f.resolved).map((f) => f.id))
-  );
+  const { data: rawFlags, isLoading } = useComplianceFlags();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [resolvedLocally, setResolvedLocally] = useState<Set<string>>(new Set());
 
-  const handleResolve = (id: string) => {
-    setResolvedFlags((prev) => new Set(prev).add(id));
+  const flags = useMemo(() => {
+    return (rawFlags ?? []).map((f: any) => ({
+      id: f.id,
+      entityType: f.entity_type ?? "--",
+      entityId: f.entity_id ?? "--",
+      flagType: f.flag_type ?? "--",
+      severity: (f.severity ?? "low") as Severity,
+      description: f.description ?? "",
+      createdDate: f.created_at ? new Date(f.created_at).toISOString().slice(0, 10) : "--",
+      resolved: f.resolved ?? false,
+    }));
+  }, [rawFlags]);
+
+  const resolvedFlags = useMemo(() => {
+    const set = new Set(flags.filter((f: any) => f.resolved).map((f: any) => f.id));
+    resolvedLocally.forEach((id) => set.add(id));
+    return set;
+  }, [flags, resolvedLocally]);
+
+  const handleResolve = async (id: string) => {
+    setResolvedLocally((prev) => new Set(prev).add(id));
+    const supabase = createClient();
+    await supabase
+      .from("compliance_flags")
+      .update({ resolved: true, resolved_at: new Date().toISOString() })
+      .eq("id", id);
+    queryClient.invalidateQueries({ queryKey: ["compliance-flags"] });
   };
 
-  const unresolvedFlags = flags.filter((f) => !resolvedFlags.has(f.id));
-  const amlCount = unresolvedFlags.filter((f) => f.flagType === "AML").length;
-  const fraudCount = unresolvedFlags.filter((f) => f.flagType === "Fraud").length;
-  const complianceCount = unresolvedFlags.filter((f) => f.flagType === "Compliance").length;
+  const unresolvedFlags = flags.filter((f: any) => !resolvedFlags.has(f.id));
+  const amlCount = unresolvedFlags.filter((f: any) => f.flagType === "AML").length;
+  const fraudCount = unresolvedFlags.filter((f: any) => f.flagType === "Fraud").length;
+  const complianceCount = unresolvedFlags.filter((f: any) => f.flagType === "Compliance").length;
 
-  const filtered = flags.filter((f) => {
+  const filtered = flags.filter((f: any) => {
     if (search && !f.entityId.toLowerCase().includes(search.toLowerCase()) && !f.description.toLowerCase().includes(search.toLowerCase()) && !f.flagType.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Compliance</h1>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => <CardSkeleton key={i} />)}
+        </div>
+        <TableSkeleton rows={6} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -138,40 +160,46 @@ export default function CompliancePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filtered.map((f) => {
-                const sc = severityColors[f.severity];
-                const isResolved = resolvedFlags.has(f.id);
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-sm text-slate-500">No compliance flags found.</td>
+                </tr>
+              ) : (
+                filtered.map((f: any) => {
+                  const sc = severityColors[f.severity] ?? severityColors.low;
+                  const isResolved = resolvedFlags.has(f.id);
 
-                return (
-                  <tr key={f.id} className={cn("transition-colors", isResolved ? "opacity-50" : "hover:bg-slate-50")}>
-                    <td className="px-6 py-3.5 text-sm text-slate-600">{f.entityType}</td>
-                    <td className="px-6 py-3.5 text-sm font-mono text-slate-900">{f.entityId}</td>
-                    <td className="px-6 py-3.5 text-sm font-medium text-slate-900">{f.flagType}</td>
-                    <td className="px-6 py-3.5">
-                      <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium capitalize", sc.bg, sc.text)}>
-                        <span className={cn("w-1.5 h-1.5 rounded-full", sc.dot)} />
-                        {f.severity}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3.5 text-sm text-slate-600 max-w-xs truncate">{f.description}</td>
-                    <td className="px-6 py-3.5 text-sm text-slate-500">{f.createdDate}</td>
-                    <td className="px-6 py-3.5 text-right">
-                      {isResolved ? (
-                        <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Resolved
+                  return (
+                    <tr key={f.id} className={cn("transition-colors", isResolved ? "opacity-50" : "hover:bg-slate-50")}>
+                      <td className="px-6 py-3.5 text-sm text-slate-600">{f.entityType}</td>
+                      <td className="px-6 py-3.5 text-sm font-mono text-slate-900">{f.entityId}</td>
+                      <td className="px-6 py-3.5 text-sm font-medium text-slate-900">{f.flagType}</td>
+                      <td className="px-6 py-3.5">
+                        <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium capitalize", sc.bg, sc.text)}>
+                          <span className={cn("w-1.5 h-1.5 rounded-full", sc.dot)} />
+                          {f.severity}
                         </span>
-                      ) : (
-                        <button
-                          onClick={() => handleResolve(f.id)}
-                          className="px-3 py-1.5 bg-sky-500 hover:bg-sky-600 text-white text-xs font-medium rounded-lg transition-colors"
-                        >
-                          Resolve
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+                      </td>
+                      <td className="px-6 py-3.5 text-sm text-slate-600 max-w-xs truncate">{f.description}</td>
+                      <td className="px-6 py-3.5 text-sm text-slate-500">{f.createdDate}</td>
+                      <td className="px-6 py-3.5 text-right">
+                        {isResolved ? (
+                          <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Resolved
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => handleResolve(f.id)}
+                            className="px-3 py-1.5 bg-sky-500 hover:bg-sky-600 text-white text-xs font-medium rounded-lg transition-colors"
+                          >
+                            Resolve
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
