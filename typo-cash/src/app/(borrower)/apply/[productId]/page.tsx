@@ -5,8 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { LOAN_PRODUCTS } from "@/lib/constants";
 import { calculateSimpleInterest } from "@/lib/loan-engine/interest-calculator";
 import { formatMoney, pulaToThebe } from "@/lib/money";
-import { createClient } from "@/lib/supabase/client";
 import { ArrowLeft, ArrowRight, Check, Loader2, Upload } from "lucide-react";
+import { submitLoanApplication } from "./actions";
 import { cn } from "@/lib/utils";
 
 const steps = [
@@ -65,146 +65,22 @@ export default function ApplyWizardPage() {
     setError(null);
 
     try {
-      const supabase = createClient();
+      const result = await submitLoanApplication({
+        productCode: product.code,
+        productName: product.name,
+        interestRate: product.interestRate,
+        principalThebe: Number(calculation.principal),
+        interestThebe: Number(calculation.interest),
+        originationFeeThebe: Number(calculation.originationFee),
+        totalRepayableThebe: Number(calculation.totalRepayable),
+        termDays: form.termDays,
+      });
 
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      if (result.error) throw new Error(result.error);
 
-      // Find borrower profile - if no auth, use the first demo borrower
-      let borrowerId: string;
-      if (user) {
-        const { data: borrower } = await supabase
-          .from("borrowers")
-          .select("id")
-          .eq("user_id", user.id)
-          .single();
-        if (!borrower) throw new Error("Borrower profile not found. Please complete registration.");
-        borrowerId = borrower.id;
-      } else {
-        // Demo mode: use first available borrower
-        const { data: demoBorrower } = await supabase
-          .from("borrowers")
-          .select("id")
-          .limit(1)
-          .single();
-        if (!demoBorrower) throw new Error("No borrower profiles found. Please seed the database.");
-        borrowerId = demoBorrower.id;
-      }
-
-      // Look up the actual product UUID from the database
-      const { data: dbProduct } = await supabase
-        .from("loan_products")
-        .select("id")
-        .eq("code", product.code)
-        .single();
-      if (!dbProduct) throw new Error("Loan product not found in database.");
-
-      const principalNum = Number(calculation.principal);
-      const interestNum = Number(calculation.interest);
-      const feeNum = Number(calculation.originationFee);
-      const totalNum = Number(calculation.totalRepayable);
-
-      // 1. Insert loan application with auto-approved status
-      const { data: application, error: appError } = await supabase
-        .from("loan_applications")
-        .insert({
-          borrower_id: borrowerId,
-          product_id: dbProduct.id,
-          requested_amount: principalNum,
-          approved_amount: principalNum,
-          term_days: form.termDays,
-          status: "approved",
-          risk_score: 75.0,
-          decision_type: "auto",
-          decision_reason: "Auto-approved: MVP demo mode",
-          submitted_at: new Date().toISOString(),
-          decided_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      if (appError) throw appError;
-
-      // 2. Generate reference number
-      const now = new Date();
-      const prefix = `TC-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}-`;
-      const { count } = await supabase
-        .from("loans")
-        .select("id", { count: "exact", head: true })
-        .like("reference_number", `${prefix}%`);
-      const refNumber = `${prefix}${String((count ?? 0) + 1).padStart(5, "0")}`;
-
-      // 3. Calculate maturity date and cooling-off expiry
-      const maturityDate = new Date(now);
-      maturityDate.setDate(maturityDate.getDate() + form.termDays);
-
-      const coolingOffExpiry = new Date(now);
-      coolingOffExpiry.setHours(coolingOffExpiry.getHours() + 48);
-
-      // 4. Create loan record
-      const { data: loan, error: loanError } = await supabase
-        .from("loans")
-        .insert({
-          application_id: application.id,
-          borrower_id: borrowerId,
-          product_id: dbProduct.id,
-          reference_number: refNumber,
-          principal_amount: principalNum,
-          interest_amount: interestNum,
-          origination_fee: feeNum,
-          total_repayable: totalNum,
-          interest_rate_percent: product.interestRate,
-          term_days: form.termDays,
-          maturity_date: maturityDate.toISOString().split("T")[0],
-          status: "approved",
-          outstanding_principal: principalNum,
-          outstanding_interest: interestNum,
-          outstanding_penalties: 0,
-          total_paid: 0,
-          days_overdue: 0,
-          cooling_off_expires_at: coolingOffExpiry.toISOString(),
-        })
-        .select()
-        .single();
-
-      if (loanError) throw loanError;
-
-      // 5. Generate repayment schedule
-      const numInstalments = form.termDays <= 30 ? 1 : Math.ceil(form.termDays / 30);
-      const basePrincipal = Math.floor(principalNum / numInstalments);
-      const baseInterest = Math.floor(interestNum / numInstalments);
-      const intervalDays = Math.ceil(form.termDays / numInstalments);
-
-      const scheduleEntries = [];
-      for (let i = 1; i <= numInstalments; i++) {
-        const dueDate = new Date(now);
-        dueDate.setDate(dueDate.getDate() + intervalDays * i);
-
-        const isLast = i === numInstalments;
-        const princ = isLast ? principalNum - basePrincipal * (numInstalments - 1) : basePrincipal;
-        const intr = isLast ? interestNum - baseInterest * (numInstalments - 1) : baseInterest;
-
-        scheduleEntries.push({
-          loan_id: loan.id,
-          instalment_number: i,
-          due_date: dueDate.toISOString().split("T")[0],
-          principal_component: princ,
-          interest_component: intr,
-          total_due: princ + intr,
-          status: "pending",
-          paid_amount: 0,
-        });
-      }
-
-      const { error: schedError } = await supabase
-        .from("repayment_schedules")
-        .insert(scheduleEntries);
-
-      if (schedError) throw schedError;
-
-      // 6. Store loan info for success page
+      // Store loan info for success page
       sessionStorage.setItem("last_loan", JSON.stringify({
-        referenceNumber: refNumber,
+        referenceNumber: result.referenceNumber,
         amount: formatMoney(calculation.principal),
         totalRepayable: formatMoney(calculation.totalRepayable),
         termDays: form.termDays,

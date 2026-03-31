@@ -256,7 +256,7 @@ INSERT INTO collections_cases (loan_id, borrower_id, stage, actions_taken, statu
   ('10000002-0000-0000-0000-000000000002',
    'e0000002-0000-0000-0000-000000000002',
    'early',
-   '[{"action":"sms_reminder","date":"' || (CURRENT_DATE - 10)::TEXT || '"},{"action":"phone_call","date":"' || (CURRENT_DATE - 5)::TEXT || '","notes":"No answer, left voicemail"}]'::JSONB,
+   ('[{"action":"sms_reminder","date":"' || (CURRENT_DATE - 10)::TEXT || '"},{"action":"phone_call","date":"' || (CURRENT_DATE - 5)::TEXT || '","notes":"No answer, left voicemail"}]')::JSONB,
    'open',
    (CURRENT_DATE + 3)::DATE);
 
